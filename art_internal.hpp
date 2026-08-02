@@ -452,9 +452,9 @@ class [[nodiscard]] basic_node_ptr {
   ///
   /// \return Node type
   ///
-  /// \note Meaningful only for a value built from a (pointer, type) pair. A
-  /// null `basic_node_ptr` is the all-zero tagged value, so type() reads back
-  /// node_type::LEAF and cannot tell a null from a leaf — test against
+  /// \note Meaningful only for a value built from a (pointer, type) pair.
+  /// Null's encoding (see the class description) makes type() read back
+  /// node_type::LEAF, so it cannot tell a null from a leaf — test against
   /// `nullptr` instead. The same holds for any other word stored in the slot,
   /// such as a value-in-slot packed value, whose low bits are value bits and
   /// not a tag.
