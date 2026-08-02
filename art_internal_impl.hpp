@@ -4727,6 +4727,26 @@ class basic_inode_48
       empty_child};
 
   /// Union for child pointer storage with SIMD vector access.
+  ///
+  /// The two members alias deliberately: every slot without a child holds
+  /// `node_ptr{nullptr}`, written through `pointer_array` by `init_grow()`,
+  /// `create_bulk()` and `remove_child_entry()`. The N256-shrinking `init()`
+  /// writes none: `basic_inode_256::min_size` is
+  /// `basic_inode_48::capacity + 1`, so it fills every slot. The leaf
+  /// `add_to_nonfull()` overload's SSE4.2, AVX2 and NEON arms find the first
+  /// such slot by comparing `pointer_vector` against an all-zero vector. That
+  /// search is correct only because a null `node_ptr` is the all-zero tagged
+  /// value — a non-zero null encoding would leave the scan unable to
+  /// recognize a free slot, which the `static_assert`s at the `node_ptr` and
+  /// `olc_node_ptr` alias definitions rule out. The overload's scalar arm
+  /// walks `pointer_array` with `node_ptr`'s own null comparison and does not
+  /// share the dependency. The value-in-slot overload cannot use the vector
+  /// search: a packed zero value aliases a null `node_ptr`, so it instead
+  /// scans `pointer_array` for a slot that is null and whose
+  /// `is_value_in_slot_by_ci()` bit is clear.
+  ///
+  /// \sa unodb::detail::basic_node_ptr for the null representation relied on
+  /// here
   union children_union {
     /// Array access to child pointers.
     std::array<critical_section_policy<node_ptr>, basic_inode_48::capacity>
