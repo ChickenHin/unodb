@@ -4374,7 +4374,7 @@ class basic_inode_48
     // children.pointer_array — empty_child is 0xFF, so the load lands far
     // outside the node's allocation; return nullptr instead.
     return UNODB_DETAIL_UNLIKELY(child_i == empty_child)
-               ? node_ptr()  // aka nullptr
+               ? node_ptr{nullptr}
                : children.pointer_array[child_i].load();
   }
 
