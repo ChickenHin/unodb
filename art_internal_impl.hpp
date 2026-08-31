@@ -4959,8 +4959,9 @@ class basic_inode_256
     ++i;
     for (; i < basic_inode_256::capacity; ++i) children[i] = node_ptr{nullptr};
 
-    UNODB_DETAIL_ASSERT(children[static_cast<std::uint8_t>(key_byte)] ==
-                        nullptr);
+    UNODB_DETAIL_ASSERT(
+        source_node.child_indexes[static_cast<std::uint8_t>(key_byte)].load() ==
+        inode48_type::empty_child);
     children[static_cast<std::uint8_t>(key_byte)] = child_val;
     if constexpr (ArtPolicy::can_eliminate_leaf) {
       // Copy bitmask from source I48. I48 indexes by slot position,
@@ -5004,8 +5005,7 @@ class basic_inode_256
                                 std::byte key_byte,
                                 std::uint8_t children_count_) noexcept {
     UNODB_DETAIL_ASSERT(this->children_count == children_count_);
-    UNODB_DETAIL_ASSERT(children[static_cast<std::uint8_t>(key_byte)] ==
-                        nullptr);
+    UNODB_DETAIL_ASSERT(!is_slot_occupied(static_cast<std::uint8_t>(key_byte)));
     children[static_cast<std::uint8_t>(key_byte)] = packed_value;
     set_value_bit(static_cast<std::uint8_t>(key_byte));
     this->children_count = static_cast<std::uint8_t>(children_count_ + 1U);
@@ -5287,6 +5287,11 @@ class basic_inode_256
   /// Check if child at index holds a packed value (not a pointer).
   [[nodiscard]] constexpr bool is_value_in_slot(std::uint8_t i) const noexcept {
     return bitmask_base::test(i);
+  }
+  /// Check whether slot at index is occupied: a non-null child pointer, or a
+  /// packed value, which is bit-identical to nullptr when that value is zero.
+  [[nodiscard]] constexpr bool is_slot_occupied(std::uint8_t i) const noexcept {
+    return children[i] != nullptr || is_value_in_slot(i);
   }
   /// Mark child at index as holding a packed value.
   constexpr void set_value_bit(std::uint8_t i) noexcept {
