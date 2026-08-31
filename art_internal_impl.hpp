@@ -4832,7 +4832,7 @@ using basic_inode_256_parent =
 
 /// Internal node with 49-256 children (N256).
 ///
-/// Uses key byte as direct index into 256-element child pointer array.
+/// Uses key byte as direct index into 256-element child slot array.
 /// No separate keys array is needed. This is the largest internal node
 /// type and cannot grow further.
 ///
@@ -5297,7 +5297,11 @@ class basic_inode_256
     bitmask_base::clear(i);
   }
 
-  /// Child pointers indexed directly by key byte.
+  /// Child slots indexed directly by key byte.
+  ///
+  /// A slot may hold a packed value rather than a node pointer.
+  ///
+  /// \sa basic_inode_256 for how occupancy is decided
   std::array<critical_section_policy<node_ptr>, basic_inode_256::capacity>
       children;
 
