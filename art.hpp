@@ -751,11 +751,12 @@ class db final {
     /// successor (or predecessor) the `child_index` needs to be interpreted
     /// according to the node type. For detail::inode_4 and detail::inode_16,
     /// you just look at the next slot in the `children[]` to find the
-    /// successor. For detail::inode_256, you look at the next non-null slot in
-    /// the `children[]`. detail::inode_48 is the oddest of the node types. For
-    /// it, you have to look at the `child_indexes[]`, find the next mapped key
-    /// value greater than the current one, and then look at its entry in the
-    /// `children[]`.
+    /// successor. For detail::inode_256, you look at the next occupied slot in
+    /// the `children[]`; see detail::basic_inode_256 for what makes a slot
+    /// occupied. detail::inode_48 is the oddest of the node
+    /// types. For it, you have to look at the `child_indexes[]`, find the next
+    /// mapped key value greater than the current one, and then look at its
+    /// entry in the `children[]`.
     std::stack<stack_entry> stack_{};
 
     /// A buffer into which visited encoded (binary comparable) keys are
