@@ -191,6 +191,61 @@ UnoDB contributors` as the first line.
   headline-like style without articles.
 - Markdown markup is preferred, i.e. `` `foo` `` instead of `\c foo`.
 - Private class members should be documented too.
+- Backticking a name never costs its autolink, and usually creates one.
+  Measured against this project's `Doxyfile`: Doxygen resolves a documented
+  entity inside a backtick code span, single- or multi-word, but it resolves
+  every name relative to the scope the comment is written in and the scopes
+  enclosing it. That scope-relativity governs the function rule below as well.
+  Over-qualifying costs nothing, so spell `unodb::detail` entities
+  `detail::class::member` throughout: `detail::basic_inode_48::child_indexes`
+  links from comments in `unodb` and in `unodb::detail` alike, while the
+  shorter `basic_inode_48::child_indexes` links only from inside
+  `unodb::detail` and renders as plain text in, say, `unodb::db::iterator`'s
+  documentation. Within one comment block, qualify the mention that introduces
+  an entity and every mention where one specific class is meant; an established
+  repeat, or a mention that generalizes over several node types, may go bare,
+  at the price of its link.
+- A name rooted at a template parameter never resolves, backticks and
+  qualification notwithstanding: `ArtPolicy` is a template parameter, not a
+  scope Doxygen resolves members through. Measured in the same run,
+  `` `ArtPolicy::can_eliminate_leaf` `` renders as plain text while
+  `detail::basic_art_policy::can_eliminate_leaf` links. `art_internal_impl.hpp`
+  keeps the `ArtPolicy::` spelling knowingly, because that is how the code
+  beside those comments names the flag, so the plain text there is a recorded
+  decision rather than a defect for a later sweep to fix.
+- A bare, unbackticked name is context-dependent, so backtick it rather than
+  relying on it. In running comment text Doxygen looks up only a name carrying
+  `::`, `#` or `()`, or one naming a documented class or type alias: a bare
+  `basic_inode_48` links, and so does a bare member alias such as
+  `iter_result_opt`, while a bare data member or namespace-scope variable —
+  `end_result`, `sync_in_inode_scan` — stays plain text. In a `\sa` paragraph,
+  Doxygen attempts lookup for every word, including names in explanatory text:
+  bare `torn_read_result`, `sync_in_inode_scan` and `basic_inode` all link when
+  documented and reachable. Ordinary running-text lookup resumes after the
+  paragraph ends. So a bare `\sa` argument is not by itself evidence of a dead
+  reference — when a reference really is dead, the undocumented-target rule
+  below is the usual cause.
+- A reference to a function resolves with empty parentheses, a `#` prefix, or
+  scope qualification — `is_value_in_slot()`, `#is_value_in_slot`,
+  `detail::basic_inode_256::is_value_in_slot()` — and also with an argument
+  list, but only when that list is the member's complete signature, trailing
+  `const` included. Each spelling below was measured both inline and as a `\sa`
+  argument:
+  `is_value_in_slot(std::uint8_t)` renders as plain text while
+  `is_value_in_slot(std::uint8_t) const` links, because that member is const,
+  and `get_child(node_type, std::uint8_t)` links because that one is not. None
+  of the resolving spellings names `noexcept`, which both members carry. An
+  argument name never matches: `is_value_in_slot(index)` is plain text. An
+  argument list is worth spelling when the name is overloaded, but it is
+  signature-coupled: adding `const` to `get_child` would silently unlink the
+  five `\sa get_child(node_type, std::uint8_t)` references in
+  `art_internal_impl.hpp`.
+- With the active Doxygen configuration (`EXTRACT_ALL = NO`,
+  `WARN_AS_ERROR = NO`), an undocumented entity is not a link target at all, so
+  a reference to it renders as plain text however it is spelled. Document the
+  target in the same commit that introduces the reference: the failure is
+  silent, emitting no warning of its own, and the target's own
+  undocumented-member warning will not fail a build either.
 
 ## Linting and static analysis
 
