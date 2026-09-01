@@ -4587,7 +4587,7 @@ class basic_inode_48
 
   /// Remove child pointer by direct children array index.
   ///
-  /// \param children_i Index in children.pointer_array
+  /// \param children_i Index in `children_union::pointer_array`
   UNODB_DETAIL_DISABLE_MSVC_WARNING(26460)
   /// \param db_instance Database for memory reclamation
   // MSVC C26815 false positive: reclaim object intentionally destroyed at
