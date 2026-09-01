@@ -4643,6 +4643,9 @@ class basic_inode_48
     }
   }
   /// Check by children array index (for internal iteration).
+  ///
+  /// \pre ci in [0, capacity), never `empty_child`: the bitmask is sized to
+  /// capacity and does no range check
   [[nodiscard]] constexpr bool is_value_in_slot_by_ci(
       std::uint8_t ci) const noexcept {
     return bitmask_base::test(ci);
@@ -4652,6 +4655,9 @@ class basic_inode_48
   /// Takes the children array index directly: no `child_indexes` lookup and no
   /// mapped-key-byte assert, unlike `set_value_bit()`. Pairs with
   /// `is_value_in_slot_by_ci()`.
+  ///
+  /// \pre ci in [0, capacity), never `empty_child`: the bitmask is sized to
+  /// capacity and does no range check
   constexpr void set_value_bit_by_ci(std::uint8_t ci) noexcept {
     bitmask_base::set(ci);
   }
