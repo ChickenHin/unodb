@@ -3946,8 +3946,8 @@ using basic_inode_48_parent = basic_inode<
 
 /// Internal node with 17-48 children (N48).
 ///
-/// Uses 256-byte child_indexes array directly indexed by key byte, storing
-/// indices into 48-element child pointer array. Neither child_indexes nor
+/// Uses 256-byte `child_indexes` array directly indexed by key byte, storing
+/// indices into 48-element child pointer array. Neither `child_indexes` nor
 /// child pointers are dense. Uses SIMD for finding first empty slot.
 ///
 /// \tparam ArtPolicy Policy class defining types and operations
@@ -4380,7 +4380,7 @@ class basic_inode_48
 
   /// Get iterator result for first child.
   ///
-  /// Scans child_indexes[256] for first mapped entry (smallest key).
+  /// Scans `child_indexes`[256] for first mapped entry (smallest key).
   ///
   /// \return Iterator result pointing to first child, or torn_read_result if
   /// no mapped entry was observed (OLC torn read)
@@ -4402,7 +4402,8 @@ class basic_inode_48
 
   /// Get iterator result for last child.
   ///
-  /// Scans child_indexes[256] in reverse for last mapped entry (greatest key).
+  /// Scans `child_indexes`[256] in reverse for last mapped entry (greatest
+  /// key).
   ///
   /// \return Iterator result pointing to last child, or torn_read_result if
   /// no mapped entry was observed (OLC torn read)
