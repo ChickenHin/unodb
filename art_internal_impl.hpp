@@ -3881,12 +3881,15 @@ class basic_inode_16
   };
 
  public:
+  /// Check if child at index holds a packed value (not a pointer).
   [[nodiscard]] constexpr bool is_value_in_slot(std::uint8_t i) const noexcept {
     return bitmask_base::test(i);
   }
+  /// Mark child at index as holding a packed value.
   constexpr void set_value_bit(std::uint8_t i) noexcept {
     bitmask_base::set(i);
   }
+  /// Mark child at index as holding a pointer (clear value bit).
   constexpr void clear_value_bit(std::uint8_t i) noexcept {
     bitmask_base::clear(i);
   }
@@ -4617,6 +4620,10 @@ class basic_inode_48
     if (ci == empty_child) return false;
     return is_value_in_slot_by_ci(ci);
   }
+  /// Mark child at key byte as holding a packed value.
+  ///
+  /// Resolves the key byte through `child_indexes`, which must map it. No-op,
+  /// and no lookup, when `ArtPolicy::can_eliminate_leaf` is false.
   constexpr void set_value_bit(std::uint8_t key_byte_i) noexcept {
     if constexpr (ArtPolicy::can_eliminate_leaf) {
       const auto ci = child_indexes[key_byte_i].load();
@@ -4624,6 +4631,10 @@ class basic_inode_48
       bitmask_base::set(ci);
     }
   }
+  /// Mark child at key byte as holding a pointer (clear value bit).
+  ///
+  /// Resolves the key byte through `child_indexes`, which must map it. No-op,
+  /// and no lookup, when `ArtPolicy::can_eliminate_leaf` is false.
   constexpr void clear_value_bit(std::uint8_t key_byte_i) noexcept {
     if constexpr (ArtPolicy::can_eliminate_leaf) {
       const auto ci = child_indexes[key_byte_i].load();
@@ -4636,6 +4647,11 @@ class basic_inode_48
       std::uint8_t ci) const noexcept {
     return bitmask_base::test(ci);
   }
+  /// Mark child at children array index as holding a packed value.
+  ///
+  /// Takes the children array index directly: no `child_indexes` lookup and no
+  /// mapped-key-byte assert, unlike `set_value_bit()`. Pairs with
+  /// `is_value_in_slot_by_ci()`.
   constexpr void set_value_bit_by_ci(std::uint8_t ci) noexcept {
     bitmask_base::set(ci);
   }
