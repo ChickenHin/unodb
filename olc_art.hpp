@@ -569,7 +569,7 @@ class olc_db final {
                     static_cast<std::byte>(0xFFU),     // ignored for leaf
                     static_cast<std::uint8_t>(0xFFU),  // ignored for leaf
                     detail::key_prefix_snapshot(0),    // ignored for leaf
-                    true},                             // packed_leaf
+                    art_policy::can_eliminate_leaf},   // is_packed_value
                    rcs.get()});
       return true;
     }
@@ -605,8 +605,7 @@ class olc_db final {
       // each of them.
       const auto& e = top();
       const auto n = static_cast<std::size_t>(
-          (!(art_policy::can_eliminate_leaf && e.packed_leaf) &&
-           e.node.type() != node_type::LEAF)
+          (!e.is_packed_value && e.node.type() != node_type::LEAF)
               ? e.prefix.length() + 1
               : 0);
       keybuf_.pop(n);
@@ -3907,14 +3906,12 @@ bool olc_db<Key, Value>::iterator::try_last() {
 template <typename Key, typename Value>
 typename olc_db<Key, Value>::iterator& olc_db<Key, Value>::iterator::next() {
   const auto node = current_node();
-  if (node != nullptr ||
-      (art_policy::can_eliminate_leaf && !empty() && top().packed_leaf)) {
+  if (node != nullptr || (!empty() && top().is_packed_value)) {
     const art_key_type akey{[&]() noexcept -> art_key_type {
       if constexpr (art_policy::full_key_in_inode_path) {
         return art_key_type{keybuf_.get_key_view()};
       } else {
-        UNODB_DETAIL_ASSERT(
-            !(art_policy::can_eliminate_leaf && stack_.top().packed_leaf));
+        UNODB_DETAIL_ASSERT(!stack_.top().is_packed_value);
         UNODB_DETAIL_ASSERT(node.type() == node_type::LEAF);
         return node.template ptr<leaf_type*>()->get_key();
       }
@@ -3941,15 +3938,11 @@ bool olc_db<Key, Value>::iterator::try_next() {
   while (!empty()) {
     const auto& e = top();
     const auto node{e.node};  // the node on the top of the stack.
-    UNODB_DETAIL_ASSERT(node != nullptr ||
-                        (art_policy::can_eliminate_leaf && e.packed_leaf));
-    // Packed values (value-in-slot) are pushed with packed_leaf=true.
-    // They have no valid lock — just pop and continue.
-    if constexpr (art_policy::can_eliminate_leaf) {
-      if (e.packed_leaf) {
-        pop();
-        continue;
-      }
+    UNODB_DETAIL_ASSERT(node != nullptr || e.is_packed_value);
+    // Packed values have no valid lock — just pop and continue.
+    if (e.is_packed_value) {
+      pop();
+      continue;
     }
     auto node_critical_section(
         node_ptr_lock(node).rehydrate_read_lock(e.version));
@@ -4000,14 +3993,12 @@ bool olc_db<Key, Value>::iterator::try_next() {
 template <typename Key, typename Value>
 typename olc_db<Key, Value>::iterator& olc_db<Key, Value>::iterator::prior() {
   const auto node = current_node();
-  if (node != nullptr ||
-      (art_policy::can_eliminate_leaf && !empty() && top().packed_leaf)) {
+  if (node != nullptr || (!empty() && top().is_packed_value)) {
     const art_key_type akey{[&]() noexcept -> art_key_type {
       if constexpr (art_policy::full_key_in_inode_path) {
         return art_key_type{keybuf_.get_key_view()};
       } else {
-        UNODB_DETAIL_ASSERT(
-            !(art_policy::can_eliminate_leaf && stack_.top().packed_leaf));
+        UNODB_DETAIL_ASSERT(!stack_.top().is_packed_value);
         UNODB_DETAIL_ASSERT(node.type() == node_type::LEAF);
         return node.template ptr<leaf_type*>()->get_key();
       }
@@ -4035,13 +4026,11 @@ bool olc_db<Key, Value>::iterator::try_prior() {
   while (!empty()) {
     const auto& e = top();
     const auto node{e.node};  // the node on the top of the stack.
-    UNODB_DETAIL_ASSERT(node != nullptr ||
-                        (art_policy::can_eliminate_leaf && e.packed_leaf));
-    if constexpr (art_policy::can_eliminate_leaf) {
-      if (e.packed_leaf) {
-        pop();
-        continue;
-      }
+    UNODB_DETAIL_ASSERT(node != nullptr || e.is_packed_value);
+    // Packed values have no valid lock — just pop and continue.
+    if (e.is_packed_value) {
+      pop();
+      continue;
     }
     auto node_critical_section(
         node_ptr_lock(node).rehydrate_read_lock(e.version));
@@ -4607,7 +4596,7 @@ auto olc_db<Key, Value>::iterator::get_val() const noexcept
   const auto& e = stack_.top();
   const auto& node = e.node;
   if constexpr (art_policy::can_eliminate_leaf) {
-    if (e.packed_leaf) {
+    if (e.is_packed_value) {
       return art_policy::unpack_value(node);
     }
     UNODB_DETAIL_CANNOT_HAPPEN();  // LCOV_EXCL_LINE
