@@ -655,7 +655,7 @@ class db final {
           static_cast<std::byte>(0xFFU),     // ignored for leaf
           static_cast<std::uint8_t>(0xFFU),  // ignored for leaf
           detail::key_prefix_snapshot(0),    // ignored for leaf
-          true                               // packed_leaf
+          art_policy::can_eliminate_leaf     // is_packed_value
       });
       // No change in the key_buffer.
     }
@@ -684,8 +684,7 @@ class db final {
 
       const auto& e = top();
       const auto n = static_cast<std::size_t>(
-          (!(art_policy::can_eliminate_leaf && e.packed_leaf) &&
-           e.node.type() != node_type::LEAF)
+          (!e.is_packed_value && e.node.type() != node_type::LEAF)
               ? e.prefix.length() + 1
               : 0);
       keybuf_.pop(n);
@@ -2174,10 +2173,9 @@ typename db<Key, Value>::iterator& db<Key, Value>::iterator::next() {
   while (!empty()) {
     const auto& e = top();
     const auto node{e.node};
-    UNODB_DETAIL_ASSERT(node != nullptr || e.packed_leaf);
+    UNODB_DETAIL_ASSERT(node != nullptr || e.is_packed_value);
     const auto node_type = node.type();
-    if (node_type == node_type::LEAF ||
-        (art_policy::can_eliminate_leaf && e.packed_leaf)) {
+    if (node_type == node_type::LEAF || e.is_packed_value) {
       pop();     // pop off the leaf
       continue;  // falls through loop if just a root leaf since stack now
                  // empty.
@@ -2210,10 +2208,9 @@ typename db<Key, Value>::iterator& db<Key, Value>::iterator::prior() {
   while (!empty()) {
     const auto& e = top();
     const auto node{e.node};
-    UNODB_DETAIL_ASSERT(node != nullptr || e.packed_leaf);
+    UNODB_DETAIL_ASSERT(node != nullptr || e.is_packed_value);
     const auto node_type = node.type();
-    if (node_type == node_type::LEAF ||
-        (art_policy::can_eliminate_leaf && e.packed_leaf)) {
+    if (node_type == node_type::LEAF || e.is_packed_value) {
       pop();     // pop off the leaf
       continue;  // falls through loop if just a root leaf since stack now
                  // empty.

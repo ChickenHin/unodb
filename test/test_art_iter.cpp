@@ -10,13 +10,18 @@
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
+// test_only_stack() returns std::vector, but only through `auto`, which
+// include-cleaner does not attribute to this header.
+#include <vector>  // IWYU pragma: keep
 
 #include <gtest/gtest.h>
 
+#include "art.hpp"
 #include "art_internal.hpp"
 #include "art_test_data.hpp"
 #include "db_test_utils.hpp"
 #include "gtest_utils.hpp"
+#include "node_type.hpp"
 
 namespace {
 
@@ -632,6 +637,38 @@ UNODB_TYPED_TEST(ARTIteratorTest, seekThreeLeavesUnderTheRoot) {
       }
     }
   }
+}
+
+// is_packed_value discriminates a packed value word from a pointer; it is not
+// a leaf-position test. Without can_eliminate_leaf, which the static_assert
+// below pins for this suite, a leaf position carries a genuine LEAF pointer
+// and the flag stays false, so both are asserted at every position. The
+// flag's false side is asserted nowhere else: the only other stack-structure
+// test runs exclusively over value-in-slot types, where the flag is always
+// true.
+UNODB_TYPED_TEST(ARTIteratorTest, leafPositionNotPackedValueWithoutVIS) {
+  // The db and mutex_db legs stamp the flag from art_policy, the olc_db legs
+  // from olc_art_policy, but one policy pins the suite: both alias the same
+  // basic_art_policy, whose can_eliminate_leaf reads only Key and Value.
+  static_assert(!unodb::detail::art_policy<
+                    typename TypeParam::key_type,
+                    typename TypeParam::value_type>::can_eliminate_leaf,
+                "this test's expectations hold only without value-in-slot");
+  unodb::test::tree_verifier<TypeParam> verifier;
+  TypeParam& db = verifier.get_db();  // reference to test db instance.
+  verifier.insert(0xaa00, test_values[0]);
+  verifier.insert(0xaa01, test_values[1]);
+  verifier.insert(0xab00, test_values[2]);
+  auto b = db.test_only_iterator();
+  int positions = 0;
+  for (b.first(); b.valid(); b.next()) {
+    const auto stk = b.test_only_stack();
+    UNODB_ASSERT_FALSE(stk.empty());
+    UNODB_EXPECT_FALSE(stk.back().is_packed_value);
+    UNODB_EXPECT_EQ(stk.back().node.type(), unodb::node_type::LEAF);
+    ++positions;
+  }
+  UNODB_EXPECT_EQ(positions, 3);  // guard against a vacuously empty scan
 }
 
 }  // namespace

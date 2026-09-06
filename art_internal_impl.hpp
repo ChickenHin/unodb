@@ -1562,11 +1562,18 @@ struct iter_result {
   /// Snapshot of key prefix for node.
   key_prefix_snapshot prefix;
 
-  /// True when this entry represents a packed value (value-in-slot) rather
-  /// than an inode or leaf pointer.  Used by the iterator to distinguish
-  /// value-in-slot entries from regular children whose child_index happens
-  /// to equal 0xFF.
-  bool packed_leaf{false};
+  /// True when #node holds a packed value (value-in-slot) rather than an
+  /// inode or leaf pointer.  Set by unodb::db::iterator::push_leaf() and
+  /// unodb::olc_db::iterator::try_push_leaf(), the only writers, and only
+  /// under basic_art_policy::can_eliminate_leaf, where the tree has no leaf
+  /// nodes at all; elsewhere a leaf position carries a genuine leaf pointer
+  /// and this stays false.
+  ///
+  /// A leaf position is therefore `is_packed_value || node.type() ==
+  /// node_type::LEAF`, never `child_index == 0xFF`: `child_index` is `0xFF`
+  /// there only as a placeholder, and `0xFF` is a valid child index in
+  /// basic_inode_48 and basic_inode_256.
+  bool is_packed_value{false};
 };
 
 /// Optional wrapper for iter_result.
@@ -2174,7 +2181,7 @@ class basic_inode_impl : public ArtPolicy::header_type {
   /// tripwire on each side: structural corruption for db, a missed version
   /// bump for olc_db. Both assert in the dispatcher rather than at the callers
   /// so that every producer is covered, and so that the null is caught before
-  /// push_leaf() / try_push_leaf() stamps packed_leaf on it: under
+  /// push_leaf() / try_push_leaf() stamps is_packed_value on it: under
   /// ArtPolicy::can_eliminate_leaf it would then be indistinguishable from a
   /// legitimate packed zero and unpack_value() would return 0, and otherwise
   /// the entry would be dereferenced as a leaf.
