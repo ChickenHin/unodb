@@ -1566,10 +1566,10 @@ struct iter_result {
 
   /// True when #node holds a packed value (value-in-slot) rather than an
   /// inode or leaf pointer.  Set by unodb::db::iterator::push_leaf() and
-  /// unodb::olc_db::iterator::try_push_leaf(), the only writers, and only
-  /// under basic_art_policy::can_eliminate_leaf, where the tree has no leaf
-  /// nodes at all; elsewhere a leaf position carries a genuine leaf pointer
-  /// and this stays false.
+  /// unodb::olc_db::iterator::push_leaf(), the only writers, and only under
+  /// basic_art_policy::can_eliminate_leaf, where the tree has no leaf nodes
+  /// at all; elsewhere a leaf position carries a genuine leaf pointer and
+  /// this stays false.
   ///
   /// A leaf position is therefore `is_packed_value || node.type() ==
   /// node_type::LEAF`, never `child_index == 0xFF`: `child_index` is `0xFF`
@@ -2179,13 +2179,12 @@ class basic_inode_impl : public ArtPolicy::header_type {
   /// `read_critical_section::check()` fails before the result is used. The
   /// single-threaded db traversals take no critical section at all and cannot
   /// observe this value. Both db::iterator::push() and
-  /// olc_db::iterator::try_push() assert the node is non-null, keeping a
-  /// tripwire on each side: structural corruption for db, a missed version
-  /// bump for olc_db. Asserting in the dispatcher rather than at each caller
-  /// covers every producer and names the fault. The 4- and 5-argument
-  /// push()/try_push() they forward to would reject a null as well, since a
-  /// null node_ptr reports node_type::LEAF, but only as a generic type
-  /// violation.
+  /// olc_db::iterator::push() assert the node is non-null, keeping a tripwire
+  /// on each side: structural corruption for db, a missed version bump for
+  /// olc_db. Asserting in the dispatcher rather than at each caller covers
+  /// every producer and names the fault. The 4- and 5-argument push() they
+  /// forward to would reject a null as well, since a null node_ptr reports
+  /// node_type::LEAF, but only as a generic type violation.
   ///
   /// \sa get_child(node_type, std::uint8_t), which returns nullptr on the same
   /// torn read
