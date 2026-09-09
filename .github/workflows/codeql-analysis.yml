@@ -2,8 +2,8 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: [master]
+  # push:
+  #   branches: [master]
   pull_request:
 
 permissions: {}
