@@ -2,12 +2,7 @@
 name: coverage
 
 on:
-  push:
-    branches:
-      - master
-      - coverage-check
-  pull_request:
-
+  workflow_dispatch: 
 permissions: {}
 
 jobs:
@@ -24,9 +19,6 @@ jobs:
         include:
           - name: Debug
             BUILD_TYPE: Debug
-
-          - name: Release
-            BUILD_TYPE: Release
 
     steps:
       - uses: actions/checkout@v6
@@ -75,16 +67,16 @@ jobs:
         run: |
           make -j3 -k coverage
 
-      - name: Upload lcov artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: lcov-${{matrix.BUILD_TYPE}}
-          path: ${{github.workspace}}/build/test/coverage-*.info
+      # - name: Upload lcov artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: lcov-${{matrix.BUILD_TYPE}}
+      #     path: ${{github.workspace}}/build/test/coverage-*.info
 
-      - name: Upload coverage data
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{secrets.CODECOV_TOKEN}}
-          flags: ${{matrix.BUILD_TYPE}}
-          fail_ci_if_error: ${{secrets.CODECOV_TOKEN != ''}}
-          directory: ${{github.workspace}}/build
+      # - name: Upload coverage data
+      #   uses: codecov/codecov-action@v5
+      #   with:
+      #     token: ${{secrets.CODECOV_TOKEN}}
+      #     flags: ${{matrix.BUILD_TYPE}}
+      #     fail_ci_if_error: ${{secrets.CODECOV_TOKEN != ''}}
+      #     directory: ${{github.workspace}}/build
